@@ -1,0 +1,320 @@
+<!-- src/app/pages/details/details.component.html -->
+
+<!-- Loading Spinner -->
+<div *ngIf="loading" class="d-flex justify-content-center align-items-center" style="height: 80vh;">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Загрузка...</span>
+  </div>
+</div>
+
+<!-- Detailed Statistics Display -->
+<div *ngIf="!loading && detailStats" class="container mt-4">
+
+  <!-- Header with Player Nicknames -->
+  <div class="mb-4">
+    <h2>{{ detailStats.targetOfficialNickname }} + {{ detailStats.relativeOfficialNickname }}</h2>
+  </div>
+
+  <!-- Win Rate Statistics Card -->
+  <div class="card mt-4">
+    <div class="card-header">
+      Процент побед с игроком "{{ detailStats.relativeOfficialNickname }}"
+    </div>
+    <div class="card-body">
+
+      <!-- Overall Win Rate -->
+      <h6>Общий</h6>
+      <div class="progress" style="height: 30px;">
+        <div class="progress-bar bg-success"
+             role="progressbar"
+             [style.width.%]="overallWinRate"
+             [attr.aria-valuenow]="overallWinRate"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          {{ overallWinRate | number:'1.0-2' }}%
+        </div>
+        <div class="progress-bar bg-light text-dark"
+             role="progressbar"
+             [style.width.%]="100 - overallWinRate"
+             [attr.aria-valuenow]="100 - overallWinRate"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          {{ 100 - overallWinRate | number:'1.0-2' }}%
+        </div>
+      </div>
+
+      <hr/>
+
+      <!-- Overall Same Team Win Rate -->
+      <h6 class="mt-3">В одноцвете</h6>
+      <div class="progress mb-3" style="height: 30px;">
+        <div class="progress-bar bg-success"
+             role="progressbar"
+             [style.width.%]="overallSameTeamWinRate"
+             [attr.aria-valuenow]="overallSameTeamWinRate"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          {{ overallSameTeamWinRate | number:'1.0-2' }}%
+        </div>
+        <div class="progress-bar bg-light text-dark"
+             role="progressbar"
+             [style.width.%]="100 - overallSameTeamWinRate"
+             [attr.aria-valuenow]="100 - overallSameTeamWinRate"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          {{ 100 - overallSameTeamWinRate | number:'1.0-2' }}%
+        </div>
+      </div>
+
+      <!-- Specific Team Win Rates -->
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <h6>Вместе красные</h6>
+          <div class="progress" style="height: 30px;">
+            <div class="progress-bar bg-success"
+                 role="progressbar"
+                 [style.width.%]="sameRedWinRate"
+                 [attr.aria-valuenow]="sameRedWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ sameRedWinRate | number:'1.0-2' }}%
+            </div>
+            <div class="progress-bar bg-light text-dark"
+                 role="progressbar"
+                 [style.width.%]="100 - sameRedWinRate"
+                 [attr.aria-valuenow]="100 - sameRedWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ 100 - sameRedWinRate | number:'1.0-2' }}%
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 mb-3">
+          <h6>Вместе черные</h6>
+          <div class="progress" style="height: 30px;">
+            <div class="progress-bar bg-success"
+                 role="progressbar"
+                 [style.width.%]="sameBlackWinRate"
+                 [attr.aria-valuenow]="sameBlackWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ sameBlackWinRate | number:'1.0-2' }}%
+            </div>
+            <div class="progress-bar bg-light text-dark"
+                 role="progressbar"
+                 [style.width.%]="100 - sameBlackWinRate"
+                 [attr.aria-valuenow]="100 - sameBlackWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ 100 - sameBlackWinRate | number:'1.0-2' }}%
+            </div>
+          </div>
+        </div>
+      </div>
+      <hr/>
+
+      <!-- Cross-Team Win Rates -->
+      <h6 class="mt-3">В разноцвете</h6>
+      <div class="progress mb-3" style="height: 30px;">
+        <div class="progress-bar bg-success"
+             role="progressbar"
+             [style.width.%]="overallCrossTeamWinRate"
+             [attr.aria-valuenow]="overallCrossTeamWinRate"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          {{ overallCrossTeamWinRate | number:'1.0-2' }}%
+        </div>
+        <div class="progress-bar bg-light text-dark"
+             role="progressbar"
+             [style.width.%]="100 - overallCrossTeamWinRate"
+             [attr.aria-valuenow]="100 - overallCrossTeamWinRate"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          {{ 100 - overallCrossTeamWinRate | number:'1.0-2' }}%
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- You are Red & They are Black -->
+        <div class="col-md-6 mb-3">
+          <h6>Вы Красный - {{ detailStats.relativeOfficialNickname }} Черный</h6>
+          <div class="progress" style="height: 30px;">
+            <div class="progress-bar bg-success"
+                 role="progressbar"
+                 [style.width.%]="crossTeamRedBlackWinRate"
+                 [attr.aria-valuenow]="crossTeamRedBlackWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ crossTeamRedBlackWinRate | number:'1.0-2' }}%
+            </div>
+            <div class="progress-bar bg-light text-dark"
+                 role="progressbar"
+                 [style.width.%]="100 - crossTeamRedBlackWinRate"
+                 [attr.aria-valuenow]="100 - crossTeamRedBlackWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ 100 - crossTeamRedBlackWinRate | number:'1.0-2' }}%
+            </div>
+          </div>
+        </div>
+
+        <!-- You are Black & They are Red -->
+        <div class="col-md-6 mb-3">
+          <h6>Вы Черный - {{ detailStats.relativeOfficialNickname }} Красный</h6>
+          <div class="progress" style="height: 30px;">
+            <div class="progress-bar bg-success"
+                 role="progressbar"
+                 [style.width.%]="crossTeamBlackRedWinRate"
+                 [attr.aria-valuenow]="crossTeamBlackRedWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ crossTeamBlackRedWinRate | number:'1.0-2' }}%
+            </div>
+            <div class="progress-bar bg-light text-dark"
+                 role="progressbar"
+                 [style.width.%]="100 - crossTeamBlackRedWinRate"
+                 [attr.aria-valuenow]="100 - crossTeamBlackRedWinRate"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+              {{ 100 - crossTeamBlackRedWinRate | number:'1.0-2' }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Role Combinations Card -->
+  <div class="card my-4">
+    <div class="card-header">
+      Комбинации Ролей
+    </div>
+
+    <!-- Role Selection Section -->
+    <div class="row mb-4 p-5 pb-0">
+
+      <!-- Target Role Selection -->
+      <div class="col-md-6 mb-3">
+        <h5>Выберите вашу роль:</h5>
+        <div class="btn-group d-flex flex-wrap" role="group" aria-label="Выбор вашей роли">
+
+          <!-- Civilian Role -->
+          <input type="radio" class="btn-check" name="targetRole" id="targetCivilian" value="civilian"
+                 [(ngModel)]="selectedTargetRole" (ngModelChange)="onRoleChange()" autocomplete="off">
+          <label class="btn btn-outline-primary flex-fill m-1" for="targetCivilian">Мирный</label>
+
+          <!-- Sheriff Role -->
+          <input type="radio" class="btn-check" name="targetRole" id="targetSheriff" value="sheriff"
+                 [(ngModel)]="selectedTargetRole" (ngModelChange)="onRoleChange()" autocomplete="off"
+                 [disabled]="selectedRelativeRole === 'sheriff'">
+          <label class="btn btn-outline-primary flex-fill m-1" for="targetSheriff">Шериф</label>
+
+          <!-- Mafia Role -->
+          <input type="radio" class="btn-check" name="targetRole" id="targetMafia" value="mafia"
+                 [(ngModel)]="selectedTargetRole" (ngModelChange)="onRoleChange()" autocomplete="off">
+          <label class="btn btn-outline-primary flex-fill m-1" for="targetMafia">Мафия</label>
+
+          <!-- Godfather Role -->
+          <input type="radio" class="btn-check" name="targetRole" id="targetGodfather" value="godfather"
+                 [(ngModel)]="selectedTargetRole" (ngModelChange)="onRoleChange()" autocomplete="off"
+                 [disabled]="selectedRelativeRole === 'godfather'">
+          <label class="btn btn-outline-primary flex-fill m-1" for="targetGodfather">Дон</label>
+        </div>
+      </div>
+
+      <!-- Relative Role Selection -->
+      <div class="col-md-6 mb-3">
+        <h5>Выберите роль {{ detailStats.relativeOfficialNickname }}:</h5>
+        <div class="btn-group d-flex flex-wrap" role="group" aria-label="Выбор роли">
+
+          <!-- Civilian Role -->
+          <input type="radio" class="btn-check" name="relativeRole" id="relativeCivilian" value="civilian"
+                 [(ngModel)]="selectedRelativeRole" (ngModelChange)="onRoleChange()" autocomplete="off">
+          <label class="btn btn-outline-secondary flex-fill m-1" for="relativeCivilian">Мирный</label>
+
+          <!-- Sheriff Role -->
+          <input type="radio" class="btn-check" name="relativeRole" id="relativeSheriff" value="sheriff"
+                 [(ngModel)]="selectedRelativeRole" (ngModelChange)="onRoleChange()" autocomplete="off"
+                 [disabled]="selectedTargetRole === 'sheriff'">
+          <label class="btn btn-outline-secondary flex-fill m-1" for="relativeSheriff">Шериф</label>
+
+          <!-- Mafia Role -->
+          <input type="radio" class="btn-check" name="relativeRole" id="relativeMafia" value="mafia"
+                 [(ngModel)]="selectedRelativeRole" (ngModelChange)="onRoleChange()" autocomplete="off">
+          <label class="btn btn-outline-secondary flex-fill m-1" for="relativeMafia">Мафия</label>
+
+          <!-- Godfather Role -->
+          <input type="radio" class="btn-check" name="relativeRole" id="relativeGodfather" value="godfather"
+                 [(ngModel)]="selectedRelativeRole" (ngModelChange)="onRoleChange()" autocomplete="off"
+                 [disabled]="selectedTargetRole === 'godfather'">
+          <label class="btn btn-outline-secondary flex-fill m-1" for="relativeGodfather">Дон</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Combination Statistics Display -->
+    <div *ngIf="selectedTargetRole && selectedRelativeRole" class="mb-4 px-5 mt-0 pt-0">
+      <h4 class="my-3">{{ getRoleName(selectedTargetRole) }} и {{ getRoleName(selectedRelativeRole) }}</h4>
+      <div class="row">
+
+        <!-- Number of Games -->
+        <div class="col-md-4 mb-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title">Количество игр</h5>
+              <p class="card-text display-6">{{ combinationGames }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Number of Wins -->
+        <div class="col-md-4 mb-3">
+          <div class="card text-center bg-success text-white">
+            <div class="card-body">
+              <h5 class="card-title">Победы</h5>
+              <p class="card-text display-6">{{ combinationWins }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Number of Losses -->
+        <div class="col-md-4 mb-3">
+          <div class="card text-center bg-danger text-white">
+            <div class="card-body">
+              <h5 class="card-title">Поражения</h5>
+              <p class="card-text display-6">{{ combinationLosses }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combination Win Rate Progress Bar -->
+      <div class="mt-1">
+        <div class="progress" style="height: 30px;">
+          <div class="progress-bar bg-success"
+               role="progressbar"
+               [style.width.%]="combinationWinRate"
+               [attr.aria-valuenow]="combinationWinRate"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            {{ combinationWinRate | number:'1.0-2' }}%
+          </div>
+          <div class="progress-bar bg-danger"
+               role="progressbar"
+               [style.width.%]="100 - combinationWinRate"
+               [attr.aria-valuenow]="100 - combinationWinRate"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            {{ 100 - combinationWinRate | number:'1.0-2' }}%
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message When No Data is Available -->
+  <div *ngIf="!loading && !detailStats" class="container mt-4">
+    <p>Нет данных для этой пары игроков.</p>
+  </div>
+</div>

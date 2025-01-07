@@ -1,0 +1,30 @@
+<div class="container mt-5">
+  <div class="p-4 p-sm-5 mb-4 bg-light rounded-3">
+    <div class="row">
+      <div class="col-12">
+        <div class="mb-4">
+          <p class="fs-6 mb-0">
+            Чтобы начать, введите ваш официальный никнейм.
+          </p>
+          <a href="https://swipeal.com/settings" target="_blank" class="text-decoration-none fs-6">
+            <i class="bi bi-question-circle text-primary"></i>
+            Как найти ваш официальный никнейм?
+          </a>
+        </div>
+
+        <form (submit)="onSubmit()">
+          <div class="mb-3">
+            <input class="form-control"
+                   type="text"
+                   placeholder="Официальный никнейм"
+                   [(ngModel)]="officialNickname"
+                   name="officialNickname"
+                   required>
+          </div>
+          <button class="btn btn-primary d-none d-md-block" type="submit">Поиск</button>
+          <button class="btn btn-primary d-md-none d-block  w-100" type="submit">Поиск</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

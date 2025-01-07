@@ -1,0 +1,129 @@
+<div class="">
+  <div class="mx-3 my-3 d-flex justify-content-between align-items-center">
+    <h2></h2>
+    <button class="btn btn-link d-block d-md-none" type="button" (click)="openFilterModal()">
+      <i class="bi bi-filter-circle-fill text-primary fs-3 p-2 pe-0"></i>
+    </button>
+    <div class="dropdown d-none d-lg-block">
+      <i class="bi bi-filter-circle-fill text-primary fs-3 p-2 pe-0" type="button" id="filterDropdown"
+         data-bs-toggle="dropdown" aria-expanded="false"></i>
+      <ul class="dropdown-menu p-4" aria-labelledby="filterDropdown" id="filterDropdownMenu">
+        <li>
+          <div class="form-group">
+            <label for="minGames" class="form-label">Минимальное количество игр: <strong>{{ minGames }}</strong></label>
+            <input type="range" id="minGames" name="minGames" class="form-range" [min]="0" [max]="maxGames" [step]="1"
+                   [(ngModel)]="minGames" (input)="onMinGamesChange()"/>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center">
+    <p>Загрузка данных...</p>
+  </div>
+
+  <div *ngIf="!loading && errorMessage" class="text-center text-danger">
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Table for larger screens -->
+  <div *ngIf="!loading && filteredStatsData.length > 0" class="table-container d-none d-lg-block">
+    <table class="table table-striped table-bordered table-hover align-middle w-100">
+      <thead class="table-light">
+      <tr>
+        <th (click)="sortBy('relative_official_nickname')" [class.sorted-header]="sortColumn === 'relative_official_nickname'">Игрок</th>
+        <th (click)="sortBy('games')" [class.sorted-header]="sortColumn === 'games'">Всего игр</th>
+        <th (click)="sortBy('overall_win_rate')" [class.sorted-header]="sortColumn === 'overall_win_rate'">Общий</th>
+        <th (click)="sortBy('same_red_win_rate')" [class.sorted-header]="sortColumn === 'same_red_win_rate'">Оба красные</th>
+        <th (click)="sortBy('same_black_win_rate')" [class.sorted-header]="sortColumn === 'same_black_win_rate'">Оба черные</th>
+        <th (click)="sortBy('overall_same_team_win_rate')" [class.sorted-header]="sortColumn === 'overall_same_team_win_rate'">В одноцвете</th>
+        <th (click)="sortBy('cross_team_red_black_win_rate')" [class.sorted-header]="sortColumn === 'cross_team_red_black_win_rate'">Красный vs черного</th>
+        <th (click)="sortBy('cross_team_black_red_win_rate')" [class.sorted-header]="sortColumn === 'cross_team_black_red_win_rate'">Черный vs красного</th>
+        <th (click)="sortBy('overall_cross_team_win_rate')" [class.sorted-header]="sortColumn === 'overall_cross_team_win_rate'">В разноцвете</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let item of filteredStatsData">
+        <td><a [routerLink]="['/detail', userId, item.relative]">{{ item.relativeOfficialNickname }}</a></td>
+        <td>{{ item.games }}</td>
+        <td>{{ item.overall_win_rate | number: '1.0-2' }}%</td>
+        <td>{{ item.same_red_win_rate | number: '1.0-2' }}%</td>
+        <td>{{ item.same_black_win_rate | number: '1.0-2' }}%</td>
+        <td>{{ item.overall_same_team_win_rate | number: '1.0-2' }}%</td>
+        <td>{{ item.cross_team_red_black_win_rate | number: '1.0-2' }}%</td>
+        <td>{{ item.cross_team_black_red_win_rate | number: '1.0-2' }}%</td>
+        <td>{{ item.overall_cross_team_win_rate | number: '1.0-2' }}%</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Cards for mobile screens -->
+  <div *ngIf="!loading && filteredStatsData.length > 0" class="d-block d-lg-none container">
+    <div *ngFor="let item of filteredStatsData" class="card mb-3" [routerLink]="['/detail', userId, item.relative]">
+      <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-baseline mb-2">
+          <h5 class="card-title">
+            <span class="text-primary">{{ item.relativeOfficialNickname }}</span>
+          </h5>
+          <span class="badge text-bg-dark">Игр: {{ item.games }}</span>
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <span class="badge text-bg-success">{{ item.overall_win_rate | number: '1.0-1' }}%</span>
+
+          <span class="badge text-black">Одноцвет: {{ item.overall_same_team_win_rate | number: '1.0-1' }}%</span>
+          <span class="badge text-black">Разноцвет: {{ item.overall_cross_team_win_rate | number: '1.0-1' }}%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && filteredStatsData.length === 0" class="text-center">
+    <p>Нет данных для отображения.</p>
+  </div>
+</div>
+
+<!-- Modal for sorting options -->
+<div class="modal fade" [class.show]="isModalOpen" tabindex="-1" aria-labelledby="sortModalLabel" aria-hidden="true" [ngStyle]="{ 'display': isModalOpen ? 'block' : 'none' }">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sortModalLabel">Настройки сортировки</h5>
+        <button type="button" class="btn-close" (click)="closeSortModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="sortColumn">Сортировать по:</label>
+          <select class="form-select" id="sortColumn" [(ngModel)]="sortColumn" (change)="applySort()">
+            <option value="games">Количество игр</option>
+            <option value="overall_win_rate">Общий процент побед</option>
+            <option value="same_red_win_rate">Процент побед (оба красные)</option>
+            <option value="same_black_win_rate">Процент побед (оба черные)</option>
+            <option value="overall_same_team_win_rate">Процент побед в одноцвете</option>
+            <option value="cross_team_red_black_win_rate">Процент побед (красный vs черный)</option>
+            <option value="cross_team_black_red_win_rate">Процент побед (черный vs красный)</option>
+            <option value="overall_cross_team_win_rate">Процент побед в разноцвете</option>
+          </select>
+        </div>
+
+        <div class="form-group mt-3">
+          <label for="sortDirection">Направление:</label>
+          <select class="form-select" id="sortDirection" [(ngModel)]="sortDirection" (change)="applySort()">
+            <option value="asc">По возрастанию</option>
+            <option value="desc">По убыванию</option>
+          </select>
+        </div>
+
+        <div class="form-group mt-3 px-2">
+          <label for="minGames" class="form-label">Минимальное количество игр: <strong>{{ minGames }}</strong></label>
+          <input type="range" id="minGames" name="minGames" class="form-range" [min]="0" [max]="maxGames" [step]="1"
+                 [(ngModel)]="minGames" (input)="onMinGamesChange()"/>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

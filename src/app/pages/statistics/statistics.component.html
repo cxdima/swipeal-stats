@@ -1,0 +1,163 @@
+<!-- statistics.component.html -->
+<div class="container-fluid mt-4">
+    <!-- Спиннер загрузки -->
+    <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="height: 80vh;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+    </div>
+
+    <!-- Сообщение об ошибке -->
+    <div *ngIf="!isLoading && errorMessage" class="alert alert-danger" role="alert">
+        {{ errorMessage }}
+    </div>
+
+    <!-- Контент статистики -->
+    <div *ngIf="!isLoading && statistics" class="row g-4">
+
+        <h5>Статистика игрока {{statistics.official_nickname}}</h5>
+
+        <!-- Левая колонка с 6 донат-чартами -->
+        <div class="col-12 col-lg-6">
+            <div class="row g-3">
+                <!-- Карточка 1: Проверки за дона -->
+                <div class="col-12 col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-container">
+                                <canvas #checksGodfatherChart></canvas>
+                            </div>
+                            <div class="chart-overlay text-center">
+                                <div>
+                                    <span class="sheriff">{{ statistics.godfather_checks_sheriff }}</span>
+                                    / {{ statistics.godfather_checks_total }}
+                                </div>
+                                <div>{{ godfather_sheriff_accuracy | number:'1.0-2' }}%</div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            Проверки за дона
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Карточка 2: Проверки за шерифа -->
+                <div class="col-12 col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-container">
+                                <canvas #checksSheriffChart></canvas>
+                            </div>
+                            <div class="chart-overlay text-center">
+                                <div>
+                                    <span>{{ sheriffBlack }}</span>
+                                    / {{ statistics.sheriff_checks_total }}
+                                </div>
+                                <div>{{ sheriffAccuracy | number:'1.0-2' }}%</div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            Проверки за Шерифа
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Карточка 3: Продажа черных -->
+                <div class="col-12 col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-container">
+                                <canvas #blackVotesChart></canvas>
+                            </div>
+                            <div class="chart-overlay text-center">
+                                <div>
+                                    <span class="civilian">{{ statistics.black_votes_own_team }}</span>
+                                    / {{ statistics.black_votes_total }}
+                                </div>
+                                <div>{{ votesForBlackPercentage | number:'1.0-2' }}%</div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            Продажа черных
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Карточка 4: Точность выстрелов -->
+                <div class="col-12 col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex justify-content-center align-items-center position-relative">
+                            <div class="chart-container">
+                                <canvas #shotAccuracyChart></canvas>
+                                <div class="chart-overlay">
+                                    <div>{{ successfulShots }} / {{ totalShots }}</div>
+                                    <div>{{ shotAccuracy | number:'1.0-2' }}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            Точность выстрелов
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Карточка 5: Голоса за шерифа -->
+                <div class="col-12 col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-container">
+                                <canvas #votesForSheriffChart></canvas>
+                                <div class="chart-overlay">
+                                    <div><span class="sheriff">{{ statistics.red_votes_against_sheriff }}</span> / {{ statistics.red_votes_total }}</div>
+                                    <div>{{ votingInaccuracy | number:'1.0-2' }}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            Бедные Шерифы
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Карточка 5: Голоса за шерифа -->
+                <div class="col-12 col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex justify-content-center align-items-center">
+                            <div class="chart-container">
+                                <canvas #checksFromGodfatherChart></canvas>
+                                <div class="chart-overlay">
+                                    <div><span class="sheriff">{{ statistics.godfather_checks_sheriff }}</span> / {{ statistics.godfather_checks_total }}</div>
+                                    <div>{{ godfather_finds_you_sheriff_accuracy | number:'1.0-2' }}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            Проверки от дона
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка с бар-чартом -->
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-body align-items-center d-flex">
+                    <div class="chart-container">
+                        <canvas #votedOffChart></canvas>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    Выбывания по раундам
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Сообщение, если нет данных -->
+    <div *ngIf="!isLoading && !statistics && !errorMessage" class="container mt-4">
+        <p>Нет данных для этого игрока.</p>
+    </div>
+</div>
+
+<app-id></app-id>

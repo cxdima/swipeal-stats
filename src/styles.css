@@ -1,1 +1,17 @@
 /* You can add global styles to this file, and also import other style files */
+
+:root {
+    --sheriff: rgb(255, 199, 0);
+    --civilian: rgb(193, 41, 68);
+}
+
+.sheriff{
+    color: var(--sheriff) !important;
+}
+.civilian{
+    color: var(--civilian) !important;
+}
+
+body{
+    font-family: 'Montserrat', sans-serif;
+}
