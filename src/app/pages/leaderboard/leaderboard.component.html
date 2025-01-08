@@ -1,0 +1,137 @@
+<div class="container-fluid">
+    <div class="my-3 d-flex justify-content-between align-items-center">
+        <h1 class="mb-0">Leaderboard</h1>
+        <button class="btn btn-link d-block d-md-none" type="button" (click)="openFilterModal()">
+            <i class="bi bi-filter-circle-fill text-primary fs-3 p-2 pe-0"></i>
+        </button>
+        <div class="dropdown d-none d-lg-block">
+            <i class="bi bi-filter-circle-fill text-primary fs-3 p-2 pe-0" type="button" id="filterDropdown"
+               data-bs-toggle="dropdown" aria-expanded="false"></i>
+            <ul class="dropdown-menu p-4" aria-labelledby="filterDropdown" id="filterDropdownMenu">
+                <li>
+                    <div class="form-group">
+                        <label for="minGames" class="form-label">Минимальное количество игр: <strong>{{ minGames }}</strong></label>
+                        <input type="range" id="minGames" name="minGames" class="form-range" [min]="0" [max]="maxGames" [step]="1"
+                               [(ngModel)]="minGames" (input)="onMinGamesChange()"/>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div *ngIf="loading" class="text-center">
+        <p>Загрузка данных...</p>
+    </div>
+
+    <div *ngIf="!loading && errorMessage" class="text-center text-danger">
+        <p>{{ errorMessage }}</p>
+    </div>
+
+    <!-- Table for larger screens -->
+    <div *ngIf="!loading && filteredPlayers.length > 0" class="table-container d-none d-lg-block">
+        <table class="table table-hover table-bordered table-striped align-middle w-100">
+            <thead>
+            <tr>
+                <th (click)="sortData('official_nickname')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'official_nickname'">
+                    Nickname
+                </th>
+                <th (click)="sortData('total_games')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'total_games'">
+                    Total Games
+                </th>
+                <th (click)="sortData('total_winrate')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'total_winrate'">
+                    Total Winrate (%)
+                </th>
+                <th (click)="sortData('red_winrate')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'red_winrate'">
+                    Red Winrate (%)
+                </th>
+                <th (click)="sortData('sheriff_winrate')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'sheriff_winrate'">
+                    Sheriff Winrate (%)
+                </th>
+                <th (click)="sortData('black_winrate')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'black_winrate'">
+                    Black Winrate (%)
+                </th>
+                <th (click)="sortData('don_winrate')" style="cursor:pointer;" [class.sorted-header]="sortColumn === 'don_winrate'">
+                    Don Winrate (%)
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let player of filteredPlayers">
+                <td>{{ player.official_nickname }}</td>
+                <td>{{ player.total_games }}</td>
+                <td>{{ player.total_winrate }}</td>
+                <td>{{ player.red_winrate }}</td>
+                <td>{{ player.sheriff_winrate }}</td>
+                <td>{{ player.black_winrate }}</td>
+                <td>{{ player.don_winrate }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Cards for mobile screens -->
+    <div *ngIf="!loading && filteredPlayers.length > 0" class="d-block d-lg-none container">
+        <div *ngFor="let player of filteredPlayers" class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <h5 class="card-title">
+                        <span class="text-primary">{{ player.official_nickname }}</span>
+                    </h5>
+                    <span class="badge text-bg-dark">Games: {{ player.total_games }}</span>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge text-bg-success">Total: {{ player.total_winrate }}%</span>
+                    <span class="badge text-bg-danger">Red: {{ player.red_winrate }}%</span>
+                    <span class="badge text-bg-warning text-dark">Sheriff: {{ player.sheriff_winrate }}%</span>
+                    <span class="badge text-bg-dark">Mafia: {{ player.black_winrate }}%</span>
+                    <span class="badge text-bg-secondary">Don: {{ player.don_winrate }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div *ngIf="!loading && filteredPlayers.length === 0" class="text-center">
+        <p>Нет данных для отображения.</p>
+    </div>
+</div>
+
+<!-- Modal for sorting and filtering options -->
+<div class="modal fade" [class.show]="isModalOpen" tabindex="-1" aria-labelledby="sortModalLabel" aria-hidden="true" [ngStyle]="{ 'display': isModalOpen ? 'block' : 'none' }">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sortModalLabel">Настройки сортировки</h5>
+                <button type="button" class="btn-close" (click)="closeFilterModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="sortColumn">Сортировать по:</label>
+                    <select class="form-select" id="sortColumn" [(ngModel)]="sortColumn" (change)="applySort()">
+                        <option value="official_nickname">Nickname</option>
+                        <option value="total_games">Total Games</option>
+                        <option value="total_winrate">Total Winrate</option>
+                        <option value="red_winrate">Red Winrate</option>
+                        <option value="sheriff_winrate">Sheriff Winrate</option>
+                        <option value="black_winrate">Black Winrate</option>
+                        <option value="don_winrate">Don Winrate</option>
+                    </select>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label for="sortDirection">Направление:</label>
+                    <select class="form-select" id="sortDirection" [(ngModel)]="sortDirection" (change)="applySort()">
+                        <option value="asc">По возрастанию</option>
+                        <option value="desc">По убыванию</option>
+                    </select>
+                </div>
+
+                <div class="form-group mt-3 px-2">
+                    <label for="minGames" class="form-label">Минимальное количество игр: <strong>{{ minGames }}</strong></label>
+                    <input type="range" id="minGames" name="minGames" class="form-range" [min]="0" [max]="maxGames" [step]="1"
+                           [(ngModel)]="minGames" (input)="onMinGamesChange()"/>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

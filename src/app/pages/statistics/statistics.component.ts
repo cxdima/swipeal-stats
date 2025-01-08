@@ -1,4 +1,3 @@
-// statistics.component.ts
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http';
@@ -7,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import Chart from 'chart.js/auto';
-import {IdComponent} from "../id/id.component";
+import { IdComponent } from "../id/id.component";
 
 interface UserStatistics {
   votes_for_black: number;
@@ -56,6 +55,14 @@ type VotedOffRoundKey =
     | 'voted_off_round_6'
  ;
 
+interface DonutChartConfig {
+  canvas: ElementRef<HTMLCanvasElement>;
+  data: { label: string; value: number }[];
+  backgroundColors: string[];
+  cutout?: string;
+  chartInstance?: Chart;
+}
+
 @Component({
   selector: 'app-statistics',
   standalone: true,
@@ -73,28 +80,14 @@ export class StatisticsComponent implements OnInit, AfterViewInit {
   @ViewChild('votedOffChart') votedOffChartCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('checksFromGodfatherChart') checksFromGodfatherChartCanvas!: ElementRef<HTMLCanvasElement>;
 
-  // Chart instances
-  private checksGodfatherChart: Chart | null = null;
-  private checksSheriffChart: Chart | null = null;
-  private blackVotesChart: Chart | null = null;
-  private shotAccuracyChart: Chart | null = null;
+  // Chart instances are now managed within DonutChartConfig
+  private donutCharts: DonutChartConfig[] = [];
   private votedOffChart: Chart | null = null;
-  private votesForSheriffChart: Chart | null = null;
-  private checksFromGodfatherChart: Chart | null = null;
 
   // Component state
   statistics: UserStatistics | null = null;
   isLoading: boolean = false;
   errorMessage: string = '';
-
-  // Data for donut charts
-  checksGodfatherData: { label: string; value: number }[] = [];
-  checksSheriffData: { label: string; value: number }[] = [];
-  blackVotesData: { label: string; value: number }[] = [];
-  shotAccuracyData: { label: string; value: number }[] = [];
-  votesForSheriffData: { label: string; value: number }[] = [];
-  checksFromGodfatherData: { label: string; value: number }[] = [];
-
 
   // Calculated metrics
   successfulShots: number = 0;
@@ -142,16 +135,8 @@ export class StatisticsComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     this.errorMessage = '';
     this.statistics = null;
-    this.checksGodfatherData = [];
-    this.checksSheriffData = [];
-    this.blackVotesData = [];
-    this.shotAccuracyData = [];
     this.votedOffRounds = [];
-    this.successfulShots = 0;
-    this.totalShots = 0;
-    this.shotAccuracy = 0;
-    this.godfather_sheriff_accuracy = 0;
-
+    this.resetMetrics();
 
     this.http.get<UserStatistics>(`${this.apiUrl}?id=${id}`)
         .pipe(
@@ -172,102 +157,74 @@ export class StatisticsComponent implements OnInit, AfterViewInit {
             console.log('Полученные данные:', this.statistics);
             this.processStatistics();
             this.cdr.detectChanges();
-            this.buildChecksGodfatherChart();
-            this.buildChecksSheriffChart();
-            this.buildBlackVotesChart();
-            this.buildShotAccuracyChart();
-            this.buildVotesForSheriffChart();
+            this.initializeDonutCharts();
             this.buildVotedOffChart();
-            this.buildChecksFromGodfatherChart();
           },
           error: () => {}
         });
+  }
+
+  resetMetrics(): void {
+    this.successfulShots = 0;
+    this.totalShots = 0;
+    this.shotAccuracy = 0;
+    this.godfather_sheriff_accuracy = 0;
+    this.sheriffAccuracy = 0;
+    this.sheriffBlack = 0;
+    this.votingInaccuracy = 0;
+    this.votesForBlackPercentage = 0;
+    this.godfather_finds_you_sheriff_accuracy = 0;
   }
 
   processStatistics(): void {
     if (!this.statistics) return;
     const stats = this.statistics;
 
-    // Данные для донат-чарта "Проверки за дона"
+    // Данные для донат-чартов
+    // Проверки за дона
     const godfatherTotal = Number(stats.godfather_checks_total) || 0;
     const godfatherCivilians = Number(stats.godfather_checks_civilian) || 0;
     const godfatherSheriff = Number(stats.godfather_checks_sheriff) || 0;
-    this.checksGodfatherData = [
-      { label: 'Проверок шерифа', value: godfatherSheriff },
-      { label: 'Проверок гражданских', value: godfatherCivilians },
-    ];
-
-    // Расчет точности проверок за дона против шерифа
     this.godfather_sheriff_accuracy = godfatherTotal > 0
         ? (godfatherSheriff / godfatherTotal) * 100
         : 0;
 
-    // Данные для донат-чарта "Проверки от дона"
-    this.checksFromGodfatherData = [
-      { label: 'Вы шериф', value: this.statistics.checked_by_godfather_when_sheriff },
-      { label: 'Вы красный', value: this.statistics.checked_by_godfather_when_civilian },
-      { label: 'Вы черный', value: (this.statistics.checked_by_godfather_total - (this.statistics.checked_by_godfather_when_civilian + this.statistics.checked_by_godfather_when_sheriff))},
-    ];
-
-    // Расчет точности проверок за дона против шерифа
+    // Проверки от дона
     this.godfather_finds_you_sheriff_accuracy = this.statistics.checked_by_godfather_total > 0
         ? (this.statistics.checked_by_godfather_when_sheriff / this.statistics.checked_by_godfather_total) * 100
         : 0;
 
-    // Данные для донат-чарта "Проверки за шерифа"
+    // Проверки за шерифа
     const sheriffTotal = Number(stats.sheriff_checks_total) || 0;
     const sheriffCivilians = Number(stats.sheriff_checks_civilian) || 0;
     const sheriffMafia = Number(stats.sheriff_checks_mafia) || 0;
     const sheriffGodfather = Number(stats.sheriff_checks_godfather) || 0;
     this.sheriffBlack = Number(stats.sheriff_checks_godfather + stats.sheriff_checks_mafia) || 0;
-    this.checksSheriffData = [
-      { label: 'Проверок мафии', value: sheriffMafia },
-      { label: 'Проверок дона', value: sheriffGodfather },
-      { label: 'Проверок мирных', value: sheriffCivilians },
-    ];
-
-    this.sheriffAccuracy = this.statistics.sheriff_checks_total > 0
-        ? ( (this.sheriffBlack) / sheriffTotal) * 100
+    this.sheriffAccuracy = sheriffTotal > 0
+        ? (this.sheriffBlack / sheriffTotal) * 100
         : 0;
 
-    // Данные для донат-чарта "Продажа черных"
+    // Продажа черных
     const blackVotesTotal = Number(stats.black_votes_total) || 0;
     const blackVotesOwn = Number(stats.black_votes_own_team) || 0;
     const blackVotesAgainstRed = blackVotesTotal - blackVotesOwn;
-
     this.votesForBlackPercentage = blackVotesTotal > 0 ? (blackVotesOwn / blackVotesTotal) * 100 : 0;
 
-    this.blackVotesData = [
-      { label: 'Руки в своих черных', value: blackVotesOwn },
-      { label: 'Руки в красных', value: blackVotesAgainstRed },
-    ];
-
-    // Данные для донат-чарта "Точность выстрелов"
+    // Точность выстрелов
     const missedShots = Number(stats.missed_shots) || 0;
     const totalShots = Number(stats.total_shots) || 0;
     const successfulShots = totalShots - missedShots;
-    const shotAccuracy = totalShots > 0 ? (successfulShots / totalShots) * 100 : 0;
-    this.shotAccuracy = shotAccuracy;
+    this.shotAccuracy = totalShots > 0 ? (successfulShots / totalShots) * 100 : 0;
     this.successfulShots = successfulShots;
     this.totalShots = totalShots;
-    this.shotAccuracyData = [
-      { label: 'Успешные выстрелы', value: successfulShots },
-      { label: 'Промахи', value: missedShots },
-    ];
 
-    // Данные для донат-чарта "Точность выстрелов"
+    // Голоса за шерифа
     const red_votes_against_sheriff = Number(stats.red_votes_against_sheriff) || 0;
-    const red_votes_against_black = Number(stats.red_votes_against_black)
-    const red_votes_total = Number(stats.red_votes_total)
-    const red_votes_against_civilian = stats.red_votes_total - (stats.red_votes_against_black)
+    const red_votes_against_black = Number(stats.red_votes_against_black) || 0;
+    const red_votes_total = Number(stats.red_votes_total) || 0;
+    const red_votes_against_civilian = red_votes_total - (red_votes_against_black);
 
-    this.votingInaccuracy = stats.red_votes_total > 0 ? (red_votes_against_sheriff / red_votes_total) * 100 : 0;
-
-    this.votesForSheriffData = [
-      { label: 'Голоса в шерифа', value: red_votes_against_sheriff },
-      { label: 'Голоса в черных', value: red_votes_against_black },
-      { label: 'Голоса в мирных', value: red_votes_against_civilian },
-    ];
+    this.votingInaccuracy = red_votes_total > 0 ? (red_votes_against_sheriff / red_votes_total) * 100 : 0;
 
     // Данные для бар-чарта "Выбывания по раундам"
     const rounds = [1, 2, 3, 4, 5, 6];
@@ -280,264 +237,99 @@ export class StatisticsComponent implements OnInit, AfterViewInit {
     console.log('Выбывания по раундам:', this.votedOffRounds);
   }
 
-  buildChecksGodfatherChart(): void {
-    if (!this.checksGodfatherChartCanvas || !this.statistics) return;
-
-    if (this.checksGodfatherChart) {
-      this.checksGodfatherChart.destroy();
-    }
-
-    const ctx = this.checksGodfatherChartCanvas.nativeElement.getContext('2d');
-    if (!ctx) {
-      this.errorMessage = 'Не удалось получить контекст Canvas для донат-чарта "Проверки за дона".';
-      return;
-    }
-
-    this.checksGodfatherChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: this.checksGodfatherData.map(item => item.label),
-        datasets: [
-          {
-            data: this.checksGodfatherData.map(item => item.value),
-            backgroundColor: ['rgb(255, 199, 0)', 'rgb(193, 41, 68)'],
-          },
+  initializeDonutCharts(): void {
+    const donutChartConfigs: DonutChartConfig[] = [
+      {
+        canvas: this.checksGodfatherChartCanvas,
+        data: [
+          { label: 'Проверок шерифа', value: this.statistics?.godfather_checks_sheriff || 0 },
+          { label: 'Проверок гражданских', value: this.statistics?.godfather_checks_civilian || 0 },
         ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        backgroundColors: ['rgb(255, 199, 0)', 'rgb(193, 41, 68)'],
         cutout: '65%',
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
       },
-    });
+      {
+        canvas: this.checksSheriffChartCanvas,
+        data: [
+          { label: 'Проверок мафии', value: this.statistics?.sheriff_checks_mafia || 0 },
+          { label: 'Проверок дона', value: this.statistics?.sheriff_checks_godfather || 0 },
+          { label: 'Проверок мирных', value: this.statistics?.sheriff_checks_civilian || 0 },
+        ],
+        backgroundColors: ['black', 'black', 'rgb(193, 41, 68)'],
+        cutout: '65%',
+      },
+      {
+        canvas: this.blackVotesChartCanvas,
+        data: [
+          { label: 'Руки в своих черных', value: this.statistics?.black_votes_own_team || 0 },
+          { label: 'Руки в красных', value: this.votesForBlackPercentage ? (this.statistics?.black_votes_total || 0) - (this.statistics?.black_votes_own_team || 0) : 0 },
+        ],
+        backgroundColors: ['rgb(193, 41, 68)', 'lightgrey'],
+        cutout: '65%',
+      },
+      {
+        canvas: this.shotAccuracyChartCanvas,
+        data: [
+          { label: 'Успешные выстрелы', value: this.successfulShots },
+          { label: 'Промахи', value: this.statistics?.missed_shots || 0 },
+        ],
+        backgroundColors: ['#198754', '#6c757d'],
+        cutout: '65%',
+      },
+      {
+        canvas: this.votesForSheriffChartCanvas,
+        data: [
+          { label: 'Голоса в шерифа', value: this.statistics?.red_votes_against_sheriff || 0 },
+          { label: 'Голоса в черных', value: this.statistics?.red_votes_against_black || 0 },
+          { label: 'Голоса в мирных', value: this.votingInaccuracy ? (this.statistics?.red_votes_total || 0) - (this.statistics?.red_votes_against_black || 0) - (this.statistics?.red_votes_against_sheriff || 0) : 0 },
+        ],
+        backgroundColors: ['rgb(255, 199, 0)', 'black', 'rgb(193, 41, 68)'],
+        cutout: '65%',
+      },
+      {
+        canvas: this.checksFromGodfatherChartCanvas,
+        data: [
+          { label: 'Вы шериф', value: this.statistics?.checked_by_godfather_when_sheriff || 0 },
+          { label: 'Вы красный', value: this.statistics?.checked_by_godfather_when_civilian || 0 },
+          { label: 'Вы черный', value: (this.statistics?.checked_by_godfather_total || 0) - (this.statistics?.checked_by_godfather_when_civilian || 0) - (this.statistics?.checked_by_godfather_when_sheriff || 0) },
+        ],
+        backgroundColors: ['rgb(255, 199, 0)', 'rgb(193, 41, 68)', 'black'],
+        cutout: '65%',
+      },
+    ];
+
+    this.donutCharts = donutChartConfigs;
+    this.donutCharts.forEach(config => this.buildDonutChart(config));
   }
 
-  buildChecksFromGodfatherChart(): void {
-    if (!this.checksFromGodfatherChartCanvas || !this.statistics) return;
+  buildDonutChart(config: DonutChartConfig): void {
+    if (!config.canvas || !this.statistics) return;
 
-    if (this.checksFromGodfatherChart) {
-      this.checksFromGodfatherChart.destroy();
+    if (config.chartInstance) {
+      config.chartInstance.destroy();
     }
 
-    const ctx = this.checksFromGodfatherChartCanvas.nativeElement.getContext('2d');
+    const ctx = config.canvas.nativeElement.getContext('2d');
     if (!ctx) {
-      this.errorMessage = 'Не удалось получить контекст Canvas для донат-чарта "Проверки за дона".';
+      this.errorMessage = `Не удалось получить контекст Canvas для донат-чарта.`;
       return;
     }
 
-    this.checksGodfatherChart = new Chart(ctx, {
+    config.chartInstance = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: this.checksFromGodfatherData.map(item => item.label),
+        labels: config.data.map(item => item.label),
         datasets: [
           {
-            data: this.checksFromGodfatherData.map(item => item.value),
-            backgroundColor: ['rgb(255, 199, 0)', 'rgb(193, 41, 68)', 'black'],
+            data: config.data.map(item => item.value),
+            backgroundColor: config.backgroundColors,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-      },
-    });
-  }
-
-  buildChecksSheriffChart(): void {
-    if (!this.checksSheriffChartCanvas || !this.statistics) return;
-
-    if (this.checksSheriffChart) {
-      this.checksSheriffChart.destroy();
-    }
-
-    const ctx = this.checksSheriffChartCanvas.nativeElement.getContext('2d');
-    if (!ctx) {
-      this.errorMessage = 'Не удалось получить контекст Canvas для донат-чарта "Проверки за шерифа".';
-      return;
-    }
-
-    this.checksSheriffChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: this.checksSheriffData.map(item => item.label),
-        datasets: [
-          {
-            data: this.checksSheriffData.map(item => item.value),
-              backgroundColor: ['black', 'black', 'rgb(193, 41, 68)'],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-      },
-    });
-  }
-
-  buildBlackVotesChart(): void {
-    if (!this.blackVotesChartCanvas || !this.statistics) return;
-
-    if (this.blackVotesChart) {
-      this.blackVotesChart.destroy();
-    }
-
-    const ctx = this.blackVotesChartCanvas.nativeElement.getContext('2d');
-    if (!ctx) {
-      this.errorMessage = 'Не удалось получить контекст Canvas для донат-чарта "Продажа черных".';
-      return;
-    }
-
-    this.blackVotesChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: this.blackVotesData.map(item => item.label),
-        datasets: [
-          {
-            data: this.blackVotesData.map(item => item.value),
-            backgroundColor: ['rgb(193, 41, 68)', 'lightgrey'],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-      },
-    });
-  }
-
-  buildVotesForSheriffChart(): void {
-    if (!this.votesForSheriffChartCanvas || !this.statistics) return;
-
-    if (this.votesForSheriffChart) {
-      this.votesForSheriffChart.destroy();
-    }
-
-    const ctx = this.votesForSheriffChartCanvas.nativeElement.getContext('2d');
-    if (!ctx) {
-      this.errorMessage = 'Не удалось получить контекст Canvas для донат-чарта "Голосования в шерифа".';
-      return;
-    }
-
-    this.votesForSheriffChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: this.votesForSheriffData.map(item => item.label),
-        datasets: [
-          {
-            data: this.votesForSheriffData.map(item => item.value),
-            backgroundColor: ['rgb(255, 199, 0)', 'black', 'rgb(193, 41, 68)'],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-      },
-    });
-  }
-
-  buildShotAccuracyChart(): void {
-    if (!this.shotAccuracyChartCanvas || !this.statistics) return;
-
-    if (this.shotAccuracyChart) {
-      this.shotAccuracyChart.destroy();
-    }
-
-    const ctx = this.shotAccuracyChartCanvas.nativeElement.getContext('2d');
-    if (!ctx) {
-      this.errorMessage = 'Не удалось получить контекст Canvas для донат-чарта "Точность выстрелов".';
-      return;
-    }
-
-    this.shotAccuracyChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: this.shotAccuracyData.map(item => item.label),
-        datasets: [
-          {
-            data: this.shotAccuracyData.map(item => item.value),
-            backgroundColor: ['#198754', '#6c757d'],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
+        cutout: config.cutout || '65%',
         plugins: {
           legend: {
             display: false,
